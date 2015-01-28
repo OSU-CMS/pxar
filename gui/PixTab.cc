@@ -41,6 +41,9 @@ PixTab::PixTab(PixGui *p, PixTest *test, string tabname) {
   fhFrame->AddFrame(fV1, new TGLayoutHints(kLHintsLeft | kLHintsExpandX | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
   fV2 = new TGVerticalFrame(fhFrame);
   fhFrame->AddFrame(fV2, new TGLayoutHints(kLHintsRight | kLHintsExpandX | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
+  fVSplitter = new TGVSplitter(fhFrame, 2, 30);
+  fVSplitter->SetFrame(fV1, kTRUE);
+  fhFrame->AddFrame(fVSplitter, new TGLayoutHints(kLHintsLeft | kLHintsExpandY));
 
   // -- fV1: create and add Embedded Canvas
   fEc1 = new TRootEmbeddedCanvas(Form("%s", tabname.c_str()), fV1, 500, 500);
