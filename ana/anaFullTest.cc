@@ -377,9 +377,9 @@ vector<string> anaFullTest::glob(string basename) {
   vector<string> lof; 
   TString fname;
   const char *file;
-  TSystem *unix = gSystem; //new TUnixSystem();
-  void *pDir = unix->OpenDirectory(".");
-  while ((file = unix->GetDirEntry(pDir))) {
+  TSystem *nix = gSystem; //new TUnixSystem();
+  void *pDir = nix->OpenDirectory(".");
+  while ((file = nix->GetDirEntry(pDir))) {
     fname = file;
     if (fname.Contains(basename.c_str())) {
       lof.push_back(string(fname));
