@@ -37,13 +37,13 @@ PixTab::PixTab(PixGui *p, PixTest *test, string tabname) {
   fhFrame = new TGCompositeFrame(fTabFrame, w, h, kHorizontalFrame);
   
   // -- 2 vertical frames
-  fV1 = new TGVerticalFrame(fhFrame);
-  fhFrame->AddFrame(fV1, new TGLayoutHints(kLHintsLeft | kLHintsExpandX | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
-  fV2 = new TGVerticalFrame(fhFrame);
-  fhFrame->AddFrame(fV2, new TGLayoutHints(kLHintsRight | kLHintsExpandX | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
-  fVSplitter = new TGVSplitter(fhFrame, 2, 30);
+  fV1 = new TGVerticalFrame(fhFrame, 800, 1, kFixedWidth);
+  fhFrame->AddFrame(fV1, new TGLayoutHints(kLHintsLeft | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
+  fVSplitter = new TGVSplitter(fhFrame);
   fVSplitter->SetFrame(fV1, kTRUE);
   fhFrame->AddFrame(fVSplitter, new TGLayoutHints(kLHintsLeft | kLHintsExpandY));
+  fV2 = new TGVerticalFrame(fhFrame);
+  fhFrame->AddFrame(fV2, new TGLayoutHints(kLHintsRight | kLHintsExpandX | kLHintsExpandY, fBorderN, fBorderN, fBorderN, fBorderN));
 
   // -- fV1: create and add Embedded Canvas
   fEc1 = new TRootEmbeddedCanvas(Form("%s", tabname.c_str()), fV1, 500, 500);
