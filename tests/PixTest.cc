@@ -153,7 +153,7 @@ int PixTest::pixelThreshold(string dac, int ntrig, int dacmin, int dacmax) {
       results = fApi->getEfficiencyVsDAC(dac, dacmin, dacmax, FLAGS, ntrig);
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true;
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       ++cnt;
     }
     done = (cnt>2) || done;
@@ -234,6 +234,64 @@ vector<TH1*> PixTest::scurveMaps(string dac, string name, int ntrig, int dacmin,
 }
 
 
+// ----------------------------------------------------------------------
+pair<vector<TH2D*>, vector<TH2D*> > PixTest::xNoiseMaps(std::string name, uint16_t ntrig, 
+							int dacmin, int dacmax, int dacsperstep, 
+							int result, uint16_t flag) {
+
+
+  vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
+  string type("hits"); 
+  print(Form("xNoiseMap name: %s ntrig: %d dacrange: %d .. %d %s flags = %d (plus default)",  
+	     name.c_str(), ntrig, dacmin, dacmax, type.c_str(), flag)); 
+
+  vector<shist256*>  maps; 
+  vector<TH1*>       resultMaps; 
+  resultMaps.clear();
+  
+  shist256 *pshistBlock  = new (fPixSetup->fPxarMemory) shist256[16*52*80]; 
+  shist256 *ph;
+  rsstools rss;
+  
+  int idx(0);
+  for (unsigned int iroc = 0; iroc < rocIds.size(); ++iroc) {
+    for (unsigned int ic = 0; ic < 52; ++ic) {
+      for (unsigned int ir = 0; ir < 80; ++ir) {
+	idx = PixUtil::rcr2idx(iroc, ic, ir); 
+	ph = pshistBlock + idx;
+	maps.push_back(ph); 
+      }
+    }
+  }
+  
+  if (dacsperstep > 0) {
+    int stepsize(dacsperstep); 
+    int dacminAdj = dacmin; 
+    int dacmaxAdj = dacmin + stepsize - 1;
+    bool finalRun(false);
+    while (dacmaxAdj <= dacmax) {
+      LOG(logINFO) << "  dacScan step  from " << dacminAdj << " .. " << dacmaxAdj; 
+      xDacScan("vcal", ntrig, dacminAdj, dacmaxAdj, maps, flag); 
+      if (finalRun) break;
+      dacminAdj = dacminAdj + stepsize; 
+      dacmaxAdj = dacminAdj + stepsize - 1;
+      if (dacmaxAdj >= dacmax) {
+	dacmaxAdj = dacmax; 
+	finalRun = true;
+      }
+    }
+  } else {
+    xDacScan("vcal", ntrig, dacmin, dacmax, maps, flag); 
+  }
+
+
+
+  pair<vector<TH2D*>, vector<TH2D*> >  results;
+  return results;
+
+}
+
+
 
 // ----------------------------------------------------------------------
 vector<TH2D*> PixTest::phMaps(string name, uint16_t ntrig, uint16_t FLAGS) {
@@ -248,7 +306,7 @@ vector<TH2D*> PixTest::phMaps(string name, uint16_t ntrig, uint16_t FLAGS) {
       results = fApi->getPulseheightMap(FLAGS, ntrig);
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true; 
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -304,7 +362,7 @@ vector<TH2D*> PixTest::efficiencyMaps(string name, uint16_t ntrig, uint16_t FLAG
       results = fApi->getEfficiencyMap(FLAGS, ntrig);
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true; 
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -575,26 +633,46 @@ void PixTest::update() {
 
 // ----------------------------------------------------------------------
 void PixTest::hvOn() {
-  //  cout << "PixTest::hvOn()" << endl;
-  Emit("hvOn()"); 
+  if (fPixSetup->guiActive()) {
+    LOG(logDEBUG) << "PixTest::hvOn() emit hvOn()";
+    Emit("hvOn()"); 
+  } else {
+    LOG(logDEBUG) << "PixTest::hvOn() api::HVon()";
+    fApi->HVon(); 
+  }
 }
 
 // ----------------------------------------------------------------------
 void PixTest::hvOff() {
-  //  cout << "PixTest::hvOff()" << endl;
-  Emit("hvOff()"); 
+  if (fPixSetup->guiActive()) {
+    LOG(logDEBUG) << "PixTest::hvOff() emit hvOff()";
+    Emit("hvOff()"); 
+  } else {
+    LOG(logDEBUG) << "PixTest::hvOff() api::HVoff()";
+    fApi->HVoff(); 
+  }
 }
 
 // ----------------------------------------------------------------------
 void PixTest::powerOn() {
-  //  cout << "PixTest::powerOn()" << endl;
-  Emit("powerOn()"); 
+  if (fPixSetup->guiActive()) {
+    LOG(logDEBUG) << "PixTest::powerOn() emit powerOn()";
+    Emit("powerOn()");
+  } else {
+    LOG(logDEBUG) << "PixTest::hvOff() api::Pon()";
+    fApi->Pon(); 
+  }
 }
 
 // ----------------------------------------------------------------------
 void PixTest::powerOff() {
-  //  cout << "PixTest::powerOff()" << endl;
-  Emit("powerOff()"); 
+  if (fPixSetup->guiActive()) {
+    LOG(logDEBUG) << "PixTest::powerOff() emit powerOff()";
+    Emit("powerOff()"); 
+  } else {
+    LOG(logDEBUG) << "PixTest::hvOff() api::Poff()";
+    fApi->Poff(); 
+  }
 }
 
 
@@ -643,6 +721,83 @@ TH1* PixTest::previousHist() {
     return (*fDisplayedHist); 
   }
 
+}
+
+
+// ----------------------------------------------------------------------
+TH1* PixTest::nextHistV() {
+  if (fHistList.size() == 0) return 0; 
+  TH1* h0 = (*fDisplayedHist); 
+  std::string histName(h0->GetName());
+  size_t pos = histName.rfind("_V");
+  if (pos != std::string::npos) {
+    int currentV = atoi(histName.substr(pos+2).c_str());
+    std::string histBaseName = histName.substr(0, pos);
+
+    int maxV = 0;
+    for (list<TH1*>::iterator il = fHistList.begin(); il != fHistList.end(); ++il) {
+      TH1* h1 = (*il); 
+      std::string histName2 = h1->GetName();
+      size_t pos2 = histName2.rfind("_V");
+      if (pos2 != std::string::npos) {
+        int checkV = atoi(histName2.substr(pos2+2).c_str());
+        if (checkV > maxV) maxV = checkV;
+      }
+    }
+
+    for (list<TH1*>::iterator il = fHistList.begin(); il != fHistList.end(); ++il) {
+      TH1* h1 = (*il); 
+      std::string histName2 = h1->GetName();
+      size_t pos2 = histName2.rfind("_V");
+      if (pos2 != std::string::npos) {
+        std::string histBaseName2 = histName2.substr(0, pos2);
+        int checkV = atoi(histName2.substr(pos2+2).c_str());
+        if (histBaseName == histBaseName2 && (checkV == currentV+1 || (currentV == maxV && checkV == 0))) {
+          fDisplayedHist = il;
+          return *il;
+        }
+      }  
+    }
+  }
+  return 0;
+}
+
+// ----------------------------------------------------------------------
+TH1* PixTest::previousHistV() {
+  if (fHistList.size() == 0) return 0; 
+  TH1* h0 = (*fDisplayedHist); 
+  std::string histName(h0->GetName());
+  size_t pos = histName.rfind("_V");
+  if (pos != std::string::npos) {
+    int currentV = atoi(histName.substr(pos+2).c_str());
+    std::string histBaseName = histName.substr(0, pos);
+
+    int maxV = 0;
+    for (list<TH1*>::iterator il = fHistList.begin(); il != fHistList.end(); ++il) {
+      TH1* h1 = (*il); 
+      std::string histName2 = h1->GetName();
+      size_t pos2 = histName2.rfind("_V");
+      if (pos2 != std::string::npos) {
+        int checkV = atoi(histName2.substr(pos2+2).c_str());
+        if (checkV > maxV) maxV = checkV;
+      }
+    }
+
+    for (list<TH1*>::iterator il = fHistList.begin(); il != fHistList.end(); ++il) {
+      TH1* h1 = (*il); 
+      std::string histName2 = h1->GetName();
+      size_t pos2 = histName2.rfind("_V");
+      if (pos2 != std::string::npos) {
+        std::string histBaseName2 = histName2.substr(0, pos2);
+        int checkV = atoi(histName2.substr(pos2+2).c_str());
+        if (histBaseName == histBaseName2 && (checkV == currentV-1 || (currentV == 0 && checkV == maxV))) {
+          fDisplayedHist = il;
+          return *il;
+        }
+      }
+    }
+  }
+  return 0;
 }
 
 // ----------------------------------------------------------------------
@@ -966,7 +1121,7 @@ vector<int> PixTest::getMaximumVthrComp(int ntrig, double frac, int reserve) {
       scans = fApi->getEfficiencyVsDAC("vthrcomp", 0, 255, FLAGS, ntrig);
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true; 
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -1210,7 +1365,7 @@ void PixTest::preScan(string dac, std::vector<shist256*> maps, int &dacmin, int 
       results = fApi->getEfficiencyVsDAC(dac, 1, 200, FLAGS, ntrig); 
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true;
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -1338,7 +1493,7 @@ void PixTest::dacScan(string dac, int ntrig, int dacmin, int dacmax, std::vector
 	fNDaqErrors = fApi->getStatistics().errors_pixel();
       }
       done = true;
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -1357,6 +1512,52 @@ void PixTest::dacScan(string dac, int ntrig, int dacmin, int dacmax, std::vector
 	continue;
       }
       val =  results[idac].second[ipix].value();
+      idx = PixUtil::rcr2idx(getIdxFromId(iroc), ic, ir);
+      if (idx > -1) maps[idx]->fill(dac, val);
+    }
+  }
+  
+}
+
+// ----------------------------------------------------------------------
+void PixTest::xDacScan(string dac, int ntrig, int dacmin, int dacmax, std::vector<shist256*> maps, int flag) {
+
+  fNtrig = ntrig; 
+
+  vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
+
+  int ic, ir, iroc; 
+  double val;
+  bool done = false;
+  int cnt(0); 
+  vector<pair<uint8_t, vector<pixel> > > results;
+  
+  while (!done){
+    LOG(logDEBUG) << "      attempt #" << cnt;
+    try{
+      results = fApi->getEfficiencyVsDAC(dac, dacmin, dacmax, flag, fNtrig); 
+      fNDaqErrors = fApi->getStatistics().errors_pixel();
+      done = true;
+    } catch(pxarException &/*e*/) {
+      fNDaqErrors = 666667;
+      ++cnt;
+    }
+    done = (cnt>2) || done;
+  }
+  
+  int idx(0); 
+  for (unsigned int idac = 0; idac < results.size(); ++idac) {
+    int dac = results[idac].first; 
+    for (unsigned int ipix = 0; ipix < results[idac].second.size(); ++ipix) {
+      ic =   results[idac].second[ipix].column(); 
+      ir =   results[idac].second[ipix].row(); 
+      iroc = results[idac].second[ipix].roc(); 
+      if (ic > 51 || ir > 79) {
+	LOG(logDEBUG) << "bad pixel address encountered: ROC/col/row = " << iroc << "/" << ic << "/" << ir;
+	continue;
+      }
+      val =  results[idac].second[ipix].value();
+      if (val < 0) continue;
       idx = PixUtil::rcr2idx(getIdxFromId(iroc), ic, ir);
       if (idx > -1) maps[idx]->fill(dac, val);
     }
@@ -1509,20 +1710,12 @@ void PixTest::getPhError(std::string /*dac*/, int /*dacmin*/, int /*dacmax*/, in
 
 // ----------------------------------------------------------------------
 void PixTest::saveDacs() {
-
-  vector<uint8_t> rocs = fApi->_dut->getEnabledRocIDs(); 
-  for (unsigned int iroc = 0; iroc < rocs.size(); ++iroc) {
-    fPixSetup->getConfigParameters()->writeDacParameterFile(rocs[iroc], fApi->_dut->getDACs(iroc)); 
-  }
-
+  fPixSetup->writeDacParameterFiles();
 }
 
 // ----------------------------------------------------------------------
 void PixTest::saveTrimBits() {
-  vector<uint8_t> rocs = fApi->_dut->getEnabledRocIDs(); 
-  for (unsigned int iroc = 0; iroc < rocs.size(); ++iroc) {
-    fPixSetup->getConfigParameters()->writeTrimFile(rocs[iroc], fApi->_dut->getEnabledPixels(rocs[iroc])); 
-  }
+  fPixSetup->writeTrimFiles();
   
 }
 
@@ -1684,7 +1877,7 @@ pair<vector<TH2D*>,vector<TH2D*> > PixTest::xEfficiencyMaps(string name, uint16_
       results = fApi->getEfficiencyMap(FLAGS, ntrig);
       fNDaqErrors = fApi->getStatistics().errors_pixel();
       done = true; 
-    } catch(pxarException &e) {
+    } catch(pxarException &/*e*/) {
       fNDaqErrors = 666667;
       ++cnt;
     }
@@ -1905,7 +2098,7 @@ void PixTest::maskHotPixels(std::vector<TH2D*> v) {
 
 
   // -- analysis of hit map
-  double THR = 1.e-4*NSECONDS*TRGFREQ*1000; 
+  double THR = 1.e-5*NSECONDS*TRGFREQ*1000; 
   LOG(logDEBUG) << "hot pixel determination with THR = " << THR; 
   int cntHot(0); 
   TH2D *h(0); 

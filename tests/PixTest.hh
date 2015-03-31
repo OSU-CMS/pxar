@@ -148,6 +148,13 @@ public:
   std::pair<std::vector<TH2D*>,std::vector<TH2D*> > xEfficiencyMaps(std::string name, uint16_t ntrig, 
 								    uint16_t FLAGS = FLAG_CHECK_ORDER | FLAG_FORCE_UNMASKED);
 
+  std::pair<std::vector<TH2D*>,std::vector<TH2D*> > xNoiseMaps(std::string name, uint16_t ntrig, 
+							       int daclo = 0, int dachi = 255, int dacsperstep = -1, 
+							       int result = 15, uint16_t FLAGS = FLAG_CHECK_ORDER | FLAG_FORCE_UNMASKED);
+
+  void xDacScan(std::string dac, int ntrig, int dacmin, int dacmax, std::vector<shist256*> maps, int flag);
+
+  
   /// determine hot pixels with high occupancy
   void maskHotPixels(std::vector<TH2D*>); 
   /// send reset to ROC(s)
@@ -278,7 +285,11 @@ public:
   /// allow forward iteration through list of histograms
   TH1* nextHist(); 
   /// allow backward iteration through list of histograms
-  TH1* previousHist(); 
+  TH1* previousHist();
+  /// allow forward iteration through list of histograms
+  TH1* nextHistV(); 
+  /// allow backward iteration through list of histograms
+  TH1* previousHistV();  
   
 
 protected: 

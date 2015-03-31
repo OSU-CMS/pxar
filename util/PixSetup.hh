@@ -29,12 +29,20 @@ public:
   void               killApi(); 
   void               setRootFileUpdate(bool x) {fDoUpdateRootFile = x;}
   bool               doRootFileUpdate() {return fDoUpdateRootFile;}
+  bool               guiActive() {return fGuiActive;}
+  void               setGuiActive(bool x) {fGuiActive = x;}
+
+  void               writeDacParameterFiles();
+  void               writeTrimFiles();
+  void               writeTbmParameterFiles();
+  
 
   void              *fPxarMemory, *fPxarMemHi;
 private: 
   bool              fDoUpdateRootFile; 
   bool              fDoAnalysisOnly; 
   bool              fUseRootLogon;
+  bool              fGuiActive;
 
   pxar::pxarCore    *fApi; 
   PixTestParameters *fPixTestParameters; 
