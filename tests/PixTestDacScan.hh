@@ -21,7 +21,7 @@ private:
   int     fParPHmap, fParNtrig; 
   std::string fParDAC; 
   int     fParLoDAC, fParHiDAC;
-
+  int fParApiFlag;
   ClassDef(PixTestDacScan, 1)
 
 };

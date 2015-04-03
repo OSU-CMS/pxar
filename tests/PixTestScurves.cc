@@ -20,7 +20,7 @@ ClassImp(PixTestScurves)
 
 // ----------------------------------------------------------------------
 PixTestScurves::PixTestScurves(PixSetup *a, std::string name) : PixTest(a, name), 
-  fParDac(""), fParNtrig(-1), fParNpix(-1), fParDacLo(-1), fParDacHi(-1), fParDacsPerStep(-1), fAdjustVcal(1), fDumpAll(-1), fDumpProblematic(-1) {
+  fParDac(""), fParNtrig(-1), fParNpix(-1), fParDacLo(-1), fParDacHi(-1), fParDacsPerStep(-1), fAdjustVcal(1), fDumpAll(-1), fDumpProblematic(-1), fParApiFlag(0) {
   PixTest::init();
   init(); 
 }
@@ -56,6 +56,9 @@ bool PixTestScurves::setParameter(string parName, string sval) {
       }
       if (!parName.compare("dacs/step")) {
 	fParDacsPerStep = atoi(sval.c_str()); 
+      }
+      if (!parName.compare("apiflag")) {
+	fParApiFlag = atoi(sval.c_str()); 
       }
 
       if (!parName.compare("adjustvcal")) {
@@ -224,8 +227,14 @@ void PixTestScurves::scurves() {
   if (fDumpAll) results |= 0x20;
   if (fDumpProblematic) results |= 0x10;
 
-  int FLAG = FLAG_FORCE_MASKED;
-  vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, results, 1, FLAG); 
+  //int FLAG = FLAG_FORCE_MASKED;
+  //  int FLAG(fParApiFlag);
+
+
+  //vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, results, 1, FLAG); 
+  vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, results, 1, fParApiFlag); 
+
+
   if (thr0.size() < 1) {
     LOG(logERROR) << "no scurve result histograms received?!"; 
     return;
@@ -340,7 +349,7 @@ void PixTestScurves::fitS() {
 void PixTestScurves::adjustVcal() {
 
   vector<int> vcal; 
-  uint16_t FLAGS = FLAG_FORCE_MASKED;
+  //uint16_t FLAGS = FLAG_FORCE_MASKED;
 
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
   unsigned nrocs = rocIds.size();
@@ -367,7 +376,7 @@ void PixTestScurves::adjustVcal() {
   try{
     
     vector<pair<uint8_t, pair<uint8_t, vector<pixel> > > >  results = 
-      fApi->getEfficiencyVsDACDAC("vthrcomp", 0, 255, "vcal", 0, 255, FLAGS, ntrig);
+      fApi->getEfficiencyVsDACDAC("vthrcomp", 0, 255, "vcal", 0, 255, fParApiFlag, ntrig);
     
     int idx(-1);
     for (unsigned int i = 0; i < results.size(); ++i) {

@@ -23,6 +23,7 @@ private:
   std::string fParDAC1, fParDAC2; 
   int     fParLoDAC1, fParHiDAC1;
   int     fParLoDAC2, fParHiDAC2;
+  int     fParApiFlag;
 
   ClassDef(PixTestDacDacScan, 1)
 

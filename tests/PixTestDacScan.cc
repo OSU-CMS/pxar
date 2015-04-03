@@ -15,7 +15,7 @@ using namespace pxar;
 ClassImp(PixTestDacScan)
 
 // ----------------------------------------------------------------------
-PixTestDacScan::PixTestDacScan(PixSetup *a, std::string name) : PixTest(a, name), fParNtrig(-1), fParDAC("nada"), fParLoDAC(-1), fParHiDAC(-1) {
+PixTestDacScan::PixTestDacScan(PixSetup *a, std::string name) : PixTest(a, name), fParNtrig(-1), fParDAC("nada"), fParLoDAC(-1), fParHiDAC(-1),  fParApiFlag(0) {
   PixTest::init();
   init(); 
 }
@@ -58,6 +58,9 @@ bool PixTestDacScan::setParameter(string parName, string sval) {
       if (!parName.compare("dachi")) {
 	fParHiDAC = atoi(sval.c_str()); 
 	setToolTips();
+      }
+      if (!parName.compare("apiflag")) {
+	fParApiFlag = atoi(sval.c_str()); 
       }
       if (!parName.compare("pix")) {
 	s1 = sval.find(","); 
@@ -118,7 +121,7 @@ PixTestDacScan::~PixTestDacScan() {
 
 // ----------------------------------------------------------------------
 void PixTestDacScan::doTest() {
-  uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
+  //  uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
   fDirectory->cd();
   TH1D *h1(0);
   vector<TH1D*> vhist;
@@ -160,11 +163,11 @@ void PixTestDacScan::doTest() {
       while (!done) {
 	try{
 	  if (0 == fParPHmap) {
-	    rresults = fApi->getEfficiencyVsDAC(fParDAC, fParLoDAC, fParHiDAC, FLAGS, fParNtrig);
+	    rresults = fApi->getEfficiencyVsDAC(fParDAC, fParLoDAC, fParHiDAC, fParApiFlag, fParNtrig);
 	    fNDaqErrors = fApi->getStatistics().errors_pixel();
 	    done = true;
 	  } else {
-	    rresults = fApi->getPulseheightVsDAC(fParDAC, fParLoDAC, fParHiDAC, FLAGS, fParNtrig);
+	    rresults = fApi->getPulseheightVsDAC(fParDAC, fParLoDAC, fParHiDAC, fParApiFlag, fParNtrig);
 	    fNDaqErrors = fApi->getStatistics().errors_pixel();
 	    done = true;
 	  }
