@@ -29,7 +29,7 @@
 
 #include "api.h"
 #include "log.h"
-
+#include "helper.h"
 
 using namespace std;
 using namespace pxar; 
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]){
       cout << "-t test               run test" << endl;
       cout << "-T [--vcal] XX        read in DAC and Trim parameter files corresponding to trim VCAL = XX" << endl;
       cout << "-v verbositylevel     set verbosity level: QUIET CRITICAL ERROR WARNING DEBUG DEBUGAPI DEBUGHAL ..." << endl;
+      cout << "-L logID              add additional <logID> to log output after the timestamp. ex: pxar -L TB1" << endl;
       return 0;
     }
     if (!strcmp(argv[i],"-c"))                                {cmdFile    = string(argv[++i]); doRunScript = true;} 
@@ -76,7 +77,8 @@ int main(int argc, char *argv[]){
     if (!strcmp(argv[i],"-t"))                                {doRunSingleTest = true; runtest  = string(argv[++i]); }
     if (!strcmp(argv[i],"-T") || !strcmp(argv[i], "--vcal"))  {trimVcal = string(argv[++i]); }
     if (!strcmp(argv[i],"-u"))                                {doUpdateRootFile = true;} 
-    if (!strcmp(argv[i],"-v"))                                {verbosity  = string(argv[++i]); }               
+    if (!strcmp(argv[i],"-v"))                                {verbosity  = string(argv[++i]); }   
+    if (!strcmp(argv[i],"-L"))                                {Log::logName(string(argv[++i]));}             
   }
 
   struct stat buffer;   
@@ -146,6 +148,12 @@ int main(int argc, char *argv[]){
     SetLogOutput::Stream() = lfile;
     SetLogOutput::Duplicate() = true;
   }
+
+  TDatime today;
+  string tstamp = Form("%d/%02d/%02d", today.GetYear(), today.GetMonth(), today.GetDay()); 
+
+  LOG(logINFO) << "*** Welcome to pxar ***";
+  LOG(logINFO) << Form("*** Today: %s", tstamp.c_str());
 
   vector<vector<pair<string,uint8_t> > >       rocDACs = configParameters->getRocDacs(); 
   vector<vector<pair<string,uint8_t> > >       tbmDACs = configParameters->getTbmDacs(); 
@@ -278,24 +286,44 @@ int main(int argc, char *argv[]){
       std::transform(subtest.begin(), subtest.end(), subtest.begin(), ::tolower);
       std::transform(input.begin(), input.end(), input.begin(), ::tolower);
       
+      if (!input.compare("savedacs")) {
+	a.writeDacParameterFiles();
+	continue;
+      }
+      if (!input.compare("savetrims")) {
+	a.writeTrimFiles();
+	continue;
+      }
+      if (!input.compare("savetbm")) {
+	a.writeTbmParameterFiles();
+	continue;
+      }
+  
       if (!input.compare("gui"))  runGui(a, argc, argv); 
       if (!input.compare("exit")) stop = true; 
       if (!input.compare("quit")) stop = true; 
       if (!input.compare("q")) stop = true; 
 
       if (stop) break;
-      LOG(logINFO) << "  running: " << input; 
-      PixTest *t = factory->createTest(input, &a);
-      if (0 == t) t = userfactory->createTest(input, &a);
-      if (t) {
-	if (subtest.compare("nada")) {
-	  t->runCommand(subtest); 
-	} else {
-	  t->doTest();
-	}
-	delete t;
+
+      if (!input.compare("delay")) {
+          int delaySeconds = atoi(parameters.c_str());
+          LOG(logINFO) << "delay test by " << delaySeconds << " seconds...";
+          pxar::mDelay(delaySeconds * 1000); // milliseconds
       } else {
-	LOG(logINFO) << "command ->" << input << "<- not known, ignored";
+        LOG(logINFO) << "  running: " << input; 
+        PixTest *t = factory->createTest(input, &a);
+        if (0 == t) t = userfactory->createTest(input, &a);
+        if (t) {
+        	if (subtest.compare("nada")) {
+        	  t->runCommand(subtest); 
+        	} else {
+        	  t->doTest();
+        	}
+  	     delete t;
+        } else {
+  	LOG(logINFO) << "command ->" << input << "<- not known, ignored";
+        }
       }
     } while (!stop);
     
