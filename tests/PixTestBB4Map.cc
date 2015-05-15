@@ -8,6 +8,7 @@
 
 #include <TArrow.h>
 #include <TSpectrum.h>
+#include <TMarker.h>
 #include "TStopwatch.h"
 
 #include "PixTestBB4Map.hh"
@@ -18,13 +19,12 @@
 using namespace std;
 using namespace pxar;
 
-double NSIGMA = 4;
 
 ClassImp(PixTestBB4Map)
 
 //------------------------------------------------------------------------------
 PixTestBB4Map::PixTestBB4Map(PixSetup *a, std::string name): PixTest(a, name), 
-  fParNtrig(-1), fParVcalS(200), fDumpAll(-1), fDumpProblematic(-1) {
+  fParNtrig(-1){
   PixTest::init();
   init();
   LOG(logDEBUG) << "PixTestBB4Map ctor(PixSetup &a, string, TGTab *)";
@@ -83,11 +83,15 @@ PixTestBB4Map::~PixTestBB4Map() {
 //------------------------------------------------------------------------------
 void PixTestBB4Map::doTest() {
 
+  double NSIGMA = 4;
+
   TStopwatch t;
+
+  setVthrCompCalDel();
 
   cacheDacs();
   PixTest::update();
-  bigBanner(Form("PixTestBB4Map::doTest() Ntrig = %d, VcalS = %d (high range)", fParNtrig, fParVcalS));
+  bigBanner(Form("PixTestBB4Map::doTest() Ntrig = %d", fParNtrig));
  
   fDirectory->cd();
 
@@ -98,13 +102,11 @@ void PixTestBB4Map::doTest() {
   fApi->setDAC("ctrlreg", 4);     // high range
 
   int result(1);
-  if (fDumpAll) result |= 0x20;
-  if (fDumpProblematic) result |= 0x10;
 
   fNDaqErrors = 0; 
   // scurveMaps function is located in pxar/tests/PixTest.cc
   // generate a TH1 s-curve wrt Vcal for each pixel
-  vector<TH1*>  thrmapsCals = scurveMaps("Vcal", "calSMap", fParNtrig, 0, 255, 30, result, 1, flag);
+  vector<TH1*>  thrmapsCals = scurveMaps("Vcal", "calSMap", fParNtrig,50, 200, 10, result, 1, flag);
   
   // create vector of 2D plots to hold rescaled threshold maps
   vector<TH2D*>  rescaledThrmaps;
@@ -154,9 +156,12 @@ void PixTestBB4Map::doTest() {
     // use fitPeaks algorithm to get the fitted gaussian of good bumps
     //    cutDead = fitPeaks(h, s, nPeaks); 
     fit = fitPeaks(h, s, nPeaks); 
-    double mean = fit->GetParameter(1); 
-    double sigma = fit->GetParameter(2); 
-
+    double mean = 0;
+    double sigma = 0;
+    if (fit != 0){
+      mean = fit->GetParameter(1); 
+      sigma = fit->GetParameter(2); 
+    }
     // place cut at NSIGMA*sigma above mean of gaussian
     // +1 places cut to the right of the arrow
     cutDead = h->GetXaxis()->FindBin(mean + NSIGMA*sigma) + 1; 
@@ -289,14 +294,18 @@ void PixTestBB4Map::setVthrCompCalDel() {
   vector<int> calDelE(rocIds.size(), -1);
   
   int ip = 0; 
-  
-  fApi->_dut->testPixel(fPIX[ip].first, fPIX[ip].second, true);
-  fApi->_dut->maskPixel(fPIX[ip].first, fPIX[ip].second, false);
+
+  int row = 11;
+  int col = 20;
+
+  fApi->_dut->testPixel(row, col, true);
+  fApi->_dut->maskPixel(row, col, false);
+
   
   map<int, TH2D*> maps; 
   for (unsigned int iroc = 0; iroc < rocIds.size(); ++iroc) {
-    h2 = bookTH2D(Form("%s_c%d_r%d_C%d", name.c_str(), fPIX[ip].first, fPIX[ip].second, rocIds[iroc]), 
-		  Form("%s_c%d_r%d_C%d", name.c_str(), fPIX[ip].first, fPIX[ip].second, rocIds[iroc]), 
+    h2 = bookTH2D(Form("%s_c%d_r%d_C%d", name.c_str(), row, col, rocIds[iroc]), 
+		  Form("%s_c%d_r%d_C%d", name.c_str(), row, col, rocIds[iroc]), 
 		  255, 0., 255., 255, 0., 255.); 
     fHistOptions.insert(make_pair(h2, "colz")); 
     maps.insert(make_pair(rocIds[iroc], h2)); 
@@ -305,6 +314,7 @@ void PixTestBB4Map::setVthrCompCalDel() {
     h2->SetDirectory(fDirectory); 
     setTitles(h2, "CalDel", "VthrComp"); 
   }
+
 
   bool done = false;
   vector<pair<uint8_t, pair<uint8_t, vector<pixel> > > >  rresults;
@@ -325,8 +335,8 @@ void PixTestBB4Map::setVthrCompCalDel() {
     done = (cnt>5) || done;
   }
   
-  fApi->_dut->testPixel(fPIX[ip].first, fPIX[ip].second, false);
-  fApi->_dut->maskPixel(fPIX[ip].first, fPIX[ip].second, true);
+  fApi->_dut->testPixel(row, col, false);
+  fApi->_dut->maskPixel(row, col, true);
     
   for (unsigned i = 0; i < rresults.size(); ++i) {
     pair<uint8_t, pair<uint8_t, vector<pixel> > > v = rresults[i];
@@ -346,11 +356,16 @@ void PixTestBB4Map::setVthrCompCalDel() {
     double top      = hy->FindLastBinAbove(0.5*vcthrMax); 
     delete hy;
 
+    // set VthrComp to fParDeltaVthrComp DAC below top edge of tornado 
+    // i.e. fParDeltaVthrComp above noise level 
+    double fParDeltaVthrComp = -25;
     if (fParDeltaVthrComp>0) {
       vthrComp[iroc] = bottom + fParDeltaVthrComp;
     } else {
       vthrComp[iroc] = top + fParDeltaVthrComp;
     }
+
+    double fParFracCalDel = 0.5;
 
     TH1D *h0 = h2->ProjectionX("_px", vthrComp[iroc], vthrComp[iroc]); 
     double cdMax   = h0->GetMaximum();
@@ -374,7 +389,7 @@ void PixTestBB4Map::setVthrCompCalDel() {
     
     h2->Draw(getHistOption(h2).c_str());
     PixTest::update(); 
-    pxar::mDelay(500); 
+    //    pxar::mDelay(500); 
     
     fHistList.push_back(h2); 
   }

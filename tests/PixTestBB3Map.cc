@@ -17,7 +17,6 @@
 using namespace std;
 using namespace pxar;
 
-double NSIGMA = 4;
 
 ClassImp(PixTestBB3Map)
 
@@ -101,6 +100,8 @@ PixTestBB3Map::~PixTestBB3Map() {
 
 //------------------------------------------------------------------------------
 void PixTestBB3Map::doTest() {
+
+  double NSIGMA = 4;
 
   TStopwatch t;
 
