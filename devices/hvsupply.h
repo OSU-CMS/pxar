@@ -79,6 +79,10 @@ namespace pxar {
      */
     double getVolts();
 
+    /** Sets the desired current (in uA)
+     */
+    bool setMicroamps(double microamps);
+
     /** Reads back the current drawn. Value is given in A (Amperes)
      */
     double getAmps();

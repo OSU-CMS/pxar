@@ -147,7 +147,7 @@ void PixTestTrim::trimTest() {
   banner(Form("PixTestTrim::trimTest() ntrig = %d, vcal = %d", fParNtrig, fParVcal));
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
 
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
 
@@ -313,7 +313,7 @@ void PixTestTrim::trimTest() {
   }
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
 
   for (unsigned int iroc = 0; iroc < rocIds.size(); ++iroc) {
     for (int ix = 0; ix < 52; ++ix) {
@@ -490,7 +490,7 @@ void PixTestTrim::trimBitTest() {
 	      fParNtrig, vtrim[0], vtrim[1], vtrim[2], vtrim[3]));
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
 
   vector<vector<TH1*> > steps; 
 

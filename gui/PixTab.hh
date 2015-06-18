@@ -52,6 +52,7 @@ protected:
   TGCompositeFrame     	*fhFrame;
   TGVerticalFrame 	*fV1;
   TGVerticalFrame 	*fV2;
+  TGVSplitter           *fVSplitter;
 
   std::map<std::string, void*>  fParTextEntries;
   std::vector<std::string>      fParIds;

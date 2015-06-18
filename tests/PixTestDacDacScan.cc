@@ -15,7 +15,7 @@ ClassImp(PixTestDacDacScan)
 // ----------------------------------------------------------------------
 PixTestDacDacScan::PixTestDacDacScan(PixSetup *a, std::string name) : 
 PixTest(a, name), fParNtrig(-1), fParPHmap(0), fParDAC1("nada"), fParDAC2("nada"), 
-  fParLoDAC1(-1), fParHiDAC1(-1), fParLoDAC2(-1), fParHiDAC2(-1) {
+  fParLoDAC1(-1), fParHiDAC1(-1), fParLoDAC2(-1), fParHiDAC2(-1), fParApiFlag(0) {
   PixTest::init();
   init(); 
   LOG(logDEBUG) << "PixTestDacDacScan ctor(PixSetup &a, string, TGTab *)";
@@ -71,6 +71,9 @@ bool PixTestDacDacScan::setParameter(string parName, string sval) {
       if (!parName.compare("dac2hi")) {
 	fParHiDAC2 = atoi(sval.c_str()); 
 	setToolTips();
+      }
+      if (!parName.compare("apiflag")) {
+	fParApiFlag = atoi(sval.c_str()); 
       }
       if (!parName.compare("pix")) {
 	s1 = sval.find(","); 
@@ -139,7 +142,7 @@ PixTestDacDacScan::~PixTestDacDacScan() {
 // ----------------------------------------------------------------------
 void PixTestDacDacScan::doTest() {
   //  uint16_t FLAGS = FLAG_FORCE_SERIAL | FLAG_FORCE_MASKED; // required for manual loop over ROCs
-  uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
+  //uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
   fDirectory->cd();
   PixTest::update(); 
 
@@ -190,12 +193,12 @@ void PixTestDacDacScan::doTest() {
 	try{
 	  if (0 == fParPHmap) {
 	    rresults = fApi->getEfficiencyVsDACDAC(fParDAC1, fParLoDAC1, fParHiDAC1, 
-						   fParDAC2, fParLoDAC2, fParHiDAC2, FLAGS, fParNtrig);
+						   fParDAC2, fParLoDAC2, fParHiDAC2, fParApiFlag, fParNtrig);
 	    fNDaqErrors = fApi->getStatistics().errors_pixel();
 	    done = true;
 	  } else {
 	    rresults = fApi->getPulseheightVsDACDAC(fParDAC1, fParLoDAC1, fParHiDAC1, 
-						    fParDAC2, fParLoDAC2, fParHiDAC2, FLAGS, fParNtrig);
+						    fParDAC2, fParLoDAC2, fParHiDAC2, fParApiFlag, fParNtrig);
 	    fNDaqErrors = fApi->getStatistics().errors_pixel();
 	    done = true;
 	  }
