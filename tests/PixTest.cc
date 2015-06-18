@@ -1778,7 +1778,7 @@ vector<vector<pair<int, int> > > PixTest::deadPixels(int ntrig, bool scanCalDel)
   fApi->setDAC("vthrcomp", 50); 
   
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //  fApi->_dut->maskAllPixels(false);
   vector<TH2D*> testEff;
 
   if (scanCalDel) {

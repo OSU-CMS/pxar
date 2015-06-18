@@ -223,7 +223,7 @@ void PixTestScurves::scurves() {
   
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
 
   int results(0xf); 
   if (fDumpAll) results |= 0x20;
@@ -271,7 +271,7 @@ void PixTestScurves::thrMap() {
   fDirectory->cd();
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
   LOG(logINFO) << "PixTestScurves::thrMap() start: " 
 	       << fParDac << ": " << fParDacLo << " .. " << fParDacHi
 	       << " ntrig = " << fParNtrig;
@@ -356,7 +356,7 @@ void PixTestScurves::adjustVcal() {
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
   unsigned nrocs = rocIds.size();
   
-  vector<vector<pair<int, int> > > dead = deadPixels(5); 
+  //  vector<vector<pair<int, int> > > dead = deadPixels(5); 
   // FIXME: do something with 'dead'!!!
 
   fApi->_dut->testAllPixels(false);
@@ -420,5 +420,5 @@ void PixTestScurves::adjustVcal() {
   }
   fApi->_dut->testAllPixels(true);
   fApi->_dut->maskAllPixels(false);
-  
+  maskPixels();  
 }

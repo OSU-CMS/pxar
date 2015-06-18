@@ -159,10 +159,10 @@ void PixTestPretest::doTest() {
 
   setTimings();
     
-  findWorkingPixel();
-  h1 = (*fDisplayedHist); 
-  h1->Draw(getHistOption(h1).c_str());
-  PixTest::update(); 
+//   findWorkingPixel();
+//   h1 = (*fDisplayedHist); 
+//   h1->Draw(getHistOption(h1).c_str());
+//   PixTest::update(); 
 
   setVthrCompCalDel();
   h1 = (*fDisplayedHist); 
@@ -171,6 +171,10 @@ void PixTestPretest::doTest() {
 
   // -- save DACs!
   saveDacs();
+
+  fApi->_dut->testAllPixels(true);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
 
   int seconds = t.RealTime(); 
   LOG(logINFO) << "PixTestPretest::doTest() done, duration: " << seconds << " seconds";
@@ -594,6 +598,10 @@ void PixTestPretest::setVthrCompCalDel() {
     fApi->setDAC("VthrComp", vthrComp[iroc], rocIds[iroc]);
     vthrcompString += Form("  %4d", vthrComp[iroc]); 
   }
+
+  fApi->_dut->testAllPixels(true);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
 
   // -- summary printout
   LOG(logINFO) << "PixTestPretest::setVthrCompCalDel() done";

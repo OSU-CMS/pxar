@@ -151,7 +151,7 @@ void PixTestAlive::aliveTest() {
   fApi->setDAC("vcal", fParVcal);
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //fApi->_dut->maskAllPixels(false);
 
   fNDaqErrors = 0; 
   vector<TH2D*> test2 = efficiencyMaps("PixelAlive", fParNtrig, FLAG_FORCE_MASKED); 
@@ -272,7 +272,7 @@ void PixTestAlive::addressDecodingTest() {
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
 
   fApi->_dut->testAllPixels(true);
-  fApi->_dut->maskAllPixels(false);
+  //  fApi->_dut->maskAllPixels(false);
 
   fNDaqErrors = 0; 
   vector<TH2D*> test2 = efficiencyMaps("AddressDecodingTest", fParNtrig, FLAG_CHECK_ORDER|FLAG_FORCE_MASKED); 
