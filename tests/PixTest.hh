@@ -48,6 +48,8 @@ typedef struct {
 } TreeEvent;
 
 
+bool sortRocHist(const TH1*, const TH1*); 
+
 ///
 /// PixTest
 /// =======
@@ -203,6 +205,8 @@ public:
   /// return a list of TH* that have 'name' as part to their histogram name
   std::vector<TH1*> mapsWithString(std::vector<TH1*>, std::string name);
   std::vector<TH2D*> mapsWithString(std::vector<TH2D*>, std::string name);
+  /// return a list of TH2D* from fHistList
+  std::vector<TH2D*> mapsWithString(std::string name);
 
   /// produce eye-catching printouts
   void print(std::string, pxar::TLogLevel log = pxar::logINFO); 
@@ -316,6 +320,7 @@ protected:
   uint32_t             fNDaqErrors; 
 
   std::string           fName, fTestTip, fSummaryTip, fStopTip; ///< information for this test
+  std::string           fOutputFilename; 
 
   std::vector<std::pair<std::string, std::string> > fParameters; ///< the parameters of this test
 
@@ -334,9 +339,11 @@ protected:
   TTimeStamp           *fTimeStamp; 
 
   bool                  fProblem;
-  
 
   std::vector<TH2D*>    fXrayMaps; 
+
+  int                   fTriStateColors[3]; 
+
 
   // -- data members for DAQ purposes
   std::vector<std::pair<std::string, uint8_t> > fPg_setup;
