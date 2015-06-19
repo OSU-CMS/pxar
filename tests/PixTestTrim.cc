@@ -191,7 +191,7 @@ void PixTestTrim::trimTest() {
   vector<int> Vcal; 
   fApi->_dut->testAllPixels(false);
   fApi->_dut->maskAllPixels(true);
-  
+
   double vcalMean(-1), vcalMin(999.), vcalMax(-1.); 
   string hname("");
   string::size_type s1, s2; 
@@ -202,7 +202,8 @@ void PixTestTrim::trimTest() {
     h2 = (TH2D*)thr1[i]; 
     hname = h2->GetName();
 
-    TH1* d1 = distribution(h2, 256, 0., 256.); 
+    //ignore empty bins when calculating the mean,RMS
+    TH1* d1 = distribution(h2, 255, 1., 256.);
     vcalMean = d1->GetMean(); 
     vcalMin = d1->GetMean() - NSIGMA*d1->GetRMS();
     if (vcalMin < 0) vcalMin = 0; 
