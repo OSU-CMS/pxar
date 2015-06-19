@@ -514,7 +514,7 @@ void PixTestPretest::setVthrCompCalDel() {
     rresults.clear(); 
     int cnt(0); 
     try{
-      rresults = fApi->getEfficiencyVsDACDAC("caldel", 0, 255, "vthrcomp", 0, 180, FLAGS, fParNtrig);
+      rresults = fApi->getEfficiencyVsDACDAC("caldel", 0, 255, "vthrcomp", 0, 255, FLAGS, fParNtrig);
       done = true;
     } catch(DataMissingEvent &e){
       LOG(logCRITICAL) << "problem with readout: "<< e.what() << " missing " << e.numberMissing << " events"; 
@@ -1067,7 +1067,8 @@ void PixTestPretest::findWorkingPixel() {
   
   fApi->_dut->testAllPixels(true);
   fApi->_dut->maskAllPixels(false);
-  
+  maskPixels();
+
   restoreDacs();
 
 }

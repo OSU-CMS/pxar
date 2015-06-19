@@ -206,7 +206,8 @@ void PixTestPhOptimization::doTest() {
 void PixTestPhOptimization::BlacklistPixels(std::vector<std::pair<uint8_t, pair<int, int> > > &badPixels, int aliveTrig){
   //makes a list of inefficient pixels, to be avoided during optimization
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
 
   vector<uint8_t> vVcal = getDacs("vcal"); 
   vector<uint8_t> vCreg = getDacs("ctrlreg"); 
@@ -272,7 +273,9 @@ void PixTestPhOptimization::GetMaxPhPixel(map<int, pxar::pixel > &maxpixels,   s
   if(isRoc21){LOG(logDEBUG)<<"ROC type is newer than digv2";}
   LOG(logDEBUG)<<"ROC type is "<<rocType;
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
+
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
   bool isPixGood=true;
   int maxph = 255;
@@ -422,7 +425,8 @@ void PixTestPhOptimization::GetMinPhPixel(map<int, pxar::pixel > &minpixels, map
   if(isRoc21){LOG(logDEBUG)<<"ROC type is newer than digv2";}
   LOG(logDEBUG)<<"ROC type is "<<rocType;
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
   bool isPixGood=true;
   int minph = 0;
@@ -630,8 +634,9 @@ void PixTestPhOptimization::DrawPhMaps(std::map<int, int> &minVcal, std::vector<
   string name, title;
   //draw PH maps and extract validation distributions from them
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
-  
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
+
   std::vector<pxar::pixel> result_map;
   map<int, TH2D* > h2_PhMaps;
   map<int, TH1D* > h1_PhMaps;

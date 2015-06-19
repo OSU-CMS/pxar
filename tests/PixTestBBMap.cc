@@ -109,6 +109,7 @@ void PixTestBBMap::doTest() {
 
   fApi->_dut->testAllPixels(true);
   fApi->_dut->maskAllPixels(false);
+  maskPixels();
 
   int flag(FLAG_CALS);
   fApi->setDAC("ctrlreg", 4);     // high range

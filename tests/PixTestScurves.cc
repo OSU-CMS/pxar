@@ -223,7 +223,8 @@ void PixTestScurves::scurves() {
   
 
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
 
   int results(0xf); 
   if (fDumpAll) results |= 0x20;
@@ -271,7 +272,9 @@ void PixTestScurves::thrMap() {
   fDirectory->cd();
 
   fApi->_dut->testAllPixels(true);
-  //fApi->_dut->maskAllPixels(false);
+  fApi->_dut->maskAllPixels(false);
+  maskPixels();
+
   LOG(logINFO) << "PixTestScurves::thrMap() start: " 
 	       << fParDac << ": " << fParDacLo << " .. " << fParDacHi
 	       << " ntrig = " << fParNtrig;
