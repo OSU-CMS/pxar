@@ -6,7 +6,7 @@ iterations          100
 setTimings          button
 findWorkingPixel    button
 setVthrCompCalDel   button
-PIX                 11,20
+PIX                 10,40
 Vcal                250
 DeltaVthrComp       50
 fracCalDel          0.5
@@ -33,7 +33,7 @@ Ntrig               10
 DAC                 vcal
 DACLO               0
 DACHI               255
-PIX                 11,20
+PIX                 10,40
 
 -- DacDacScan
 PHmap               checkbox
@@ -44,7 +44,7 @@ DAC1HI              255
 DAC2                vthrcomp
 DAC2LO              0
 DAC2HI              255
-PIX                 11,20
+PIX                 10,40
 
 -- BB
 dumpAll             checkbox(0)
@@ -56,7 +56,7 @@ vcals               250
 Ntrig               10
 vcals               222
 Plwidth             35
-PIX                 11,20
+PIX                 10,40
 targetIa            24
 
 -- Readback
@@ -126,7 +126,7 @@ DelayTBM            checkbox
 FillTree            checkbox
 
 -- HighRate
-PIX                 11,20
+PIX                 10,40
 maskHotPixels       button
 saveMaskFile        checkbox(0)
 maskFileName        default
