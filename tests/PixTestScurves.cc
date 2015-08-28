@@ -7,6 +7,7 @@
 #include <TRandom.h>
 #include <TMath.h>
 #include <TStopwatch.h>
+#include <TStyle.h>
 
 #include "PixTestScurves.hh"
 #include "PixUtil.hh"
@@ -20,7 +21,8 @@ ClassImp(PixTestScurves)
 
 // ----------------------------------------------------------------------
 PixTestScurves::PixTestScurves(PixSetup *a, std::string name) : PixTest(a, name), 
-  fParDac(""), fParNtrig(-1), fParNpix(-1), fParDacLo(-1), fParDacHi(-1), fParDacsPerStep(-1), fAdjustVcal(1), fDumpAll(-1), fDumpProblematic(-1), fParApiFlag(0) {
+  fParDac(""), fParNtrig(1), fParDacLo(0), fParDacHi(0), fParDacsPerStep(1), fParNtrigPerStep(1), 
+  fAdjustVcal(1), fDumpAll(-1), fDumpProblematic(-1), fDumpOutputFile(-1) {
   PixTest::init();
   init(); 
 }
@@ -42,9 +44,6 @@ bool PixTestScurves::setParameter(string parName, string sval) {
       if (!parName.compare("ntrig")) {
 	fParNtrig = atoi(sval.c_str()); 
       }
-      if (!parName.compare("npix")) {
-	fParNpix = atoi(sval.c_str()); 
-      }
       if (!parName.compare("dac")) {
 	fParDac = sval;
       }
@@ -57,8 +56,8 @@ bool PixTestScurves::setParameter(string parName, string sval) {
       if (!parName.compare("dacs/step")) {
 	fParDacsPerStep = atoi(sval.c_str()); 
       }
-      if (!parName.compare("apiflag")) {
-	fParApiFlag = atoi(sval.c_str()); 
+      if (!parName.compare("ntrig/step")) {
+	fParNtrigPerStep = atoi(sval.c_str()); 
       }
 
       if (!parName.compare("adjustvcal")) {
@@ -79,6 +78,19 @@ bool PixTestScurves::setParameter(string parName, string sval) {
 	PixUtil::replaceAll(sval, "checkbox(", ""); 
 	PixUtil::replaceAll(sval, ")", ""); 
 	fDumpProblematic = atoi(sval.c_str()); 
+	setToolTips();
+      }
+
+      if (!parName.compare("dumpoutputfile")) {
+	PixUtil::replaceAll(sval, "checkbox(", ""); 
+	PixUtil::replaceAll(sval, ")", ""); 
+	fDumpOutputFile = atoi(sval.c_str()); 
+	if (fDumpOutputFile)  {
+	  fOutputFilename = "SCurveData";
+	} else {
+	  fOutputFilename = "";
+	}
+	LOG(logDEBUG) << "set fOutputFilename = "  << fOutputFilename; 
 	setToolTips();
       }
 
@@ -134,6 +146,8 @@ PixTestScurves::~PixTestScurves() {
 // ----------------------------------------------------------------------
 void PixTestScurves::doTest() {
 
+  fStopTest = false;
+
   fDirectory->cd();
   PixTest::update(); 
 
@@ -161,25 +175,33 @@ void PixTestScurves::doTest() {
 // ----------------------------------------------------------------------
 void PixTestScurves::fullTest() {
 
+  fStopTest = false;
+
   TStopwatch t;
 
   fDirectory->cd();
   PixTest::update(); 
-  fParNtrig = 20; 
-  bigBanner(Form("PixTestScurves::fullTest() ntrig = %d", fParNtrig));
 
-  fParDac = "VthrComp"; 
-  fParDacLo = 0; 
-  fParDacHi = 119;
-  fParDacsPerStep = 10;   
-  scurves();
+  //   fParNtrig = 20; 
+  //   fOutputFilename = "";
+  //   fParDac = "VthrComp"; 
+  //   fParDacLo = 0; 
+  //   fParDacHi = 119;
+  //   fParDacsPerStep = 10;   
+  //   scurves();
 
+  fOutputFilename = "SCurveData";
   fParNtrig = 50; 
   fParDac = "Vcal"; 
   fParDacLo = 0; 
   fParDacHi = 149;
-  fParDacsPerStep = 10;   
+  fParDacsPerStep = -1;   
+  fParNtrigPerStep = -1;   
+  bigBanner(Form("PixTestScurves::fullTest() ntrig = %d, dacs/step = %d, ntrig/step = %d", fParNtrig, fParDacsPerStep, fParNtrigPerStep));
   scurves();
+
+  // -- reset to no output
+  fOutputFilename = "";
 
   int seconds = t.RealTime(); 
   LOG(logINFO) << "PixTestScurves::fullTest() done, duration: " << seconds << " seconds";
@@ -210,9 +232,13 @@ void PixTestScurves::runCommand(string command) {
 
 // ----------------------------------------------------------------------
 void PixTestScurves::scurves() {
+  gStyle->SetPalette(1); 
+  fStopTest = false;
   fDirectory->cd();
   cacheDacs();
-  banner(Form("PixTestScurves::scurves(%s), ntrig = %d", fParDac.c_str(), fParNtrig));
+
+  banner(Form("PixTestScurves::scurves(%s), ntrig = %d, dacs/step = %d, ntrig/step = %d", 
+	      fParDac.c_str(), fParNtrig, fParDacsPerStep, fParNtrigPerStep));
 
   string command(fParDac);
   std::transform(command.begin(), command.end(), command.begin(), ::tolower);
@@ -230,13 +256,8 @@ void PixTestScurves::scurves() {
   if (fDumpAll) results |= 0x20;
   if (fDumpProblematic) results |= 0x10;
 
-  //int FLAG = FLAG_FORCE_MASKED;
-  //  int FLAG(fParApiFlag);
-
-
-  //vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, results, 1, FLAG); 
-  vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, results, 1, fParApiFlag); 
-
+  int FLAG = FLAG_FORCE_MASKED;
+  vector<TH1*> thr0 = scurveMaps(fParDac, "scurve"+fParDac, fParNtrig, fParDacLo, fParDacHi, fParDacsPerStep, fParNtrigPerStep, results, 1, FLAG); 
 
   if (thr0.size() < 1) {
     LOG(logERROR) << "no scurve result histograms received?!"; 
@@ -261,7 +282,7 @@ void PixTestScurves::scurves() {
   LOG(logINFO) << "PixTestScurves::scurves() done ";
   LOG(logINFO) << Form("%s mean: ", fParDac.c_str()) << scurvesMeanString; 
   LOG(logINFO) << Form("%s RMS:  ", fParDac.c_str()) << scurvesRmsString; 
-
+  dutCalibrateOff();
 }
 
 
@@ -283,6 +304,7 @@ void PixTestScurves::thrMap() {
   PixTest::update(); 
   restoreDacs();
   LOG(logINFO) << "PixTestScurves::thrMap() done ";
+  dutCalibrateOff();
 
 }
 
@@ -423,5 +445,6 @@ void PixTestScurves::adjustVcal() {
   }
   fApi->_dut->testAllPixels(true);
   fApi->_dut->maskAllPixels(false);
-  maskPixels();  
+  maskPixels();
+
 }

@@ -15,6 +15,7 @@ cdef extern from "api.h" namespace "pxar":
     cdef int _flag_nosort         "FLAG_NOSORT"
     cdef int _flag_check_order    "FLAG_CHECK_ORDER"
     cdef int _flag_force_unmasked "FLAG_FORCE_UNMASKED"
+    cdef int _flag_dump_flawed_events "FLAG_DUMP_FLAWED_EVENTS"
 
 cdef extern from "api.h" namespace "pxar":
     cdef cppclass pixel:
@@ -166,14 +167,14 @@ cdef extern from "api.h" namespace "pxar":
         void setTestboardDelays(vector[pair[string, uint8_t] ] sig_delays) except +
         void setPatternGenerator(vector[pair[string, uint8_t] ] pg_setup) except +
 
-        bool initDUT(uint8_t hubId,
+        bool initDUT(vector[uint8_t] hubId,
 	             string tbmtype,
                      vector[vector[pair[string,uint8_t]]] tbmDACs,
                      string roctype,
                      vector[vector[pair[string,uint8_t]]] rocDACs,
                      vector[vector[pixelConfig]] rocPixels) except +
 
-        bool initDUT(uint8_t hubId,
+        bool initDUT(vector[uint8_t] hubId,
 	             string tbmtype,
                      vector[vector[pair[string,uint8_t]]] tbmDACs,
                      string roctype,
@@ -209,9 +210,9 @@ cdef extern from "api.h" namespace "pxar":
         int32_t getReadbackValue(string parameterName) except +
         bool setExternalClock(bool enable) except +
         void setClockStretch(uint8_t src, uint16_t delay, uint16_t width) except +
-        void setSignalMode(string signal, uint8_t mode) except +
-        void setSignalMode(string signal, string mode) except +
-        bool daqStart() except +
+        void setSignalMode(string signal, uint8_t mode, uint8_t speed) except +
+        void setSignalMode(string signal, string mode, uint8_t speed) except +
+        bool daqStart(uint16_t flags) except +
         bool daqStatus() except +
         bool daqTriggerSource(string triggerSource) except +
         bool daqSingleSignal(string triggerSignal) except +

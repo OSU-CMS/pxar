@@ -44,7 +44,7 @@ namespace pxar {
     // Check pixel data length:
     if(analog.size() != 6) {
       LOG(logDEBUGAPI) << "Received wrong number of data words for a pixel: " << analog.size();
-      throw DataInvalidAddressError("Received wrong number of data words for a pixel: " + analog.size());
+      throw DataInvalidAddressError("Received wrong number of data words for a pixel");
     }
 
     // Calculate the levels:
@@ -100,11 +100,35 @@ namespace pxar {
     return (raw & 0x00ffffff);
   }
 
+  void Event::printHeader() {
+    LOG(logINFO) << "Header content: 0x" << std::hex << header << std::dec;
+    LOG(logINFO) << "\t Event ID \t" << static_cast<int>(this->triggerCount());
+    LOG(logINFO) << "\t Data ID " << static_cast<int>(this->dataID()) 
+		       << " Value " << static_cast<int>(this->dataValue());
+  }
+
+  void Event::printTrailer() {
+    LOG(logINFO) << "Trailer content: 0x" << std::hex << trailer << std::dec;
+    LOG(logINFO) << "\t Token Pass \t" << textBool(this->hasTokenPass());
+    LOG(logINFO) << "\t Reset TBM \t" << textBool(this->hasResetTBM());
+    LOG(logINFO) << "\t Reset ROC \t" << textBool(this->hasResetROC());
+    LOG(logINFO) << "\t Sync Err \t" << textBool(this->hasSyncError());
+    LOG(logINFO) << "\t Sync Trigger \t" << textBool(this->hasSyncTrigger());
+    LOG(logINFO) << "\t ClearTrig Cnt \t" << textBool(this->hasClearTriggerCount());
+    LOG(logINFO) << "\t Cal Trigger \t" << textBool(this->hasCalTrigger());
+    LOG(logINFO) << "\t Stack Full \t" << textBool(this->stackFull());
+
+    LOG(logINFO) << "\t Auto Reset \t" << textBool(this->hasAutoReset());
+    LOG(logINFO) << "\t PKAM Reset \t" << textBool(this->hasPkamReset());
+    LOG(logINFO) << "\t Stack Count \t" << static_cast<int>(this->stackCount());
+  }
+
   void statistics::dump() {
     // Print out the full statistics:
     LOG(logINFO) << "Decoding statistics:";
     LOG(logINFO) << "  General information:";
     LOG(logINFO) << "\t 16bit words read:         " << this->info_words_read();
+    LOG(logINFO) << "\t valid events total:       " << this->info_events_total();
     LOG(logINFO) << "\t empty events:             " << this->info_events_empty();
     LOG(logINFO) << "\t valid events with pixels: " << this->info_events_valid();
     LOG(logINFO) << "\t valid pixel hits:         " << this->info_pixels_valid();
@@ -153,36 +177,17 @@ namespace pxar {
     m_errors_pixel_buffer_corrupt = 0;
   }
 
-  statistics& operator+=(statistics &lhs, const statistics &rhs) {
-    // Informational bits:
-    lhs.m_info_words_read += rhs.m_info_words_read;
-    lhs.m_info_events_empty += rhs.m_info_events_empty;
-    lhs.m_info_events_valid += rhs.m_info_events_valid;
-    lhs.m_info_pixels_valid += rhs.m_info_pixels_valid;
+  tbmConfig::tbmConfig(uint8_t tbmtype) : dacs(), type(tbmtype), hubid(31), core(0xE0), tokenchains(), enable(true) {
 
-    // Event errors:
-    lhs.m_errors_event_start += rhs.m_errors_event_start;
-    lhs.m_errors_event_stop += rhs.m_errors_event_stop;
-    lhs.m_errors_event_overflow += rhs.m_errors_event_overflow;
-    lhs.m_errors_event_invalid_words += rhs.m_errors_event_invalid_words;
-    lhs.m_errors_event_invalid_xor += rhs.m_errors_event_invalid_xor;
-
-    // TBM errors:
-    lhs.m_errors_tbm_header += rhs.m_errors_tbm_header;
-    lhs.m_errors_tbm_trailer += rhs.m_errors_tbm_trailer;
-    lhs.m_errors_tbm_eventid_mismatch += rhs.m_errors_tbm_eventid_mismatch;
-
-    // ROC errors:
-    lhs.m_errors_roc_missing += rhs.m_errors_roc_missing;
-    lhs.m_errors_roc_readback += rhs.m_errors_roc_readback;
-
-    // Pixel decoding errors:
-    lhs.m_errors_pixel_incomplete += rhs.m_errors_pixel_incomplete;
-    lhs.m_errors_pixel_address += rhs.m_errors_pixel_address;
-    lhs.m_errors_pixel_pulseheight += rhs.m_errors_pixel_pulseheight;
-    lhs.m_errors_pixel_buffer_corrupt += rhs.m_errors_pixel_buffer_corrupt;
-
-    return lhs;
+    if(tbmtype == 0x0) {
+      LOG(logCRITICAL) << "Invalid TBM type \"" << tbmtype << "\"";
+      throw InvalidConfig("Invalid TBM type.");
+    }
+    
+    // Standard setup for token chain lengths:
+    // Four ROCs per stream for dual-400MHz, eight ROCs for single-400MHz readout:
+    if(type >= TBM_09) { for(size_t i = 0; i < 2; i++) tokenchains.push_back(4); }
+    else if(type >= TBM_08) { tokenchains.push_back(8); }
   }
 
 } // namespace pxar

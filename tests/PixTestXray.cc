@@ -6,11 +6,13 @@
 #include "PixTestXray.hh"
 #include "log.h"
 #include "TStopwatch.h"
+#include <TStyle.h>
 
 #include "PixUtil.hh"
 
 #include <TH2.h>
 #include <TMath.h>
+#include <TStyle.h>
 
 using namespace std;
 using namespace pxar;
@@ -19,7 +21,7 @@ ClassImp(PixTestXray)
 
 // ----------------------------------------------------------------------
 PixTestXray::PixTestXray(PixSetup *a, std::string name) : PixTest(a, name), 
-  fParSource("nada"), fParMaskFileName("default"), fParTriggerFrequency(0), fParRunSeconds(0), fParStepSeconds(0), 
+  fParSource("nada"), fParMaskFileName("default"), fParTriggerFrequency(1), fParRunSeconds(1), fParStepSeconds(1), 
   fParVthrCompMin(0), fParVthrCompMax(0),  fParFillTree(false), fParDelayTBM(false), fParSaveMaskedPixels(0), fSourceChanged(false) {
   PixTest::init();
   init(); 
@@ -235,6 +237,7 @@ void PixTestXray::doPhRun() {
 
   banner(Form("PixTestXray::doPhRun() fParRunSeconds = %d", fParRunSeconds));
 
+  gStyle->SetPalette(1);
   PixTest::update(); 
   fDirectory->cd();
 
@@ -536,7 +539,7 @@ void PixTestXray::doRateScan() {
   fApi->_dut->testAllPixels(true);
   fApi->_dut->maskAllPixels(false);
 
-  vector<TH1*> thr0 = scurveMaps("vcal", "xrayScan", 5, 0, 255, -1, 9); 
+  vector<TH1*> thr0 = scurveMaps("vcal", "xrayScan", 5, 0, 255, -1, -1, 9); 
 
   fHits[0]->Draw();
   fDisplayedHist = find(fHistList.begin(), fHistList.end(), fHits[0]);

@@ -3,6 +3,7 @@
 #include <sstream>   // parsing
 
 #include <TStopwatch.h>
+#include <TStyle.h>
 #include "constants.h"
 
 #include "PixTestPhOptimization.hh"
@@ -15,7 +16,7 @@ ClassImp(PixTestPhOptimization)
 
 PixTestPhOptimization::PixTestPhOptimization() {}
 
-PixTestPhOptimization::PixTestPhOptimization( PixSetup *a, std::string name ) :  PixTest(a, name), fParNtrig(-1), fSafetyMarginLow(20), fQuantMax(0.98), fVcalMax(100) {
+PixTestPhOptimization::PixTestPhOptimization( PixSetup *a, std::string name ) :  PixTest(a, name), fParNtrig(1), fSafetyMarginLow(20), fQuantMax(0.98), fVcalMax(100) {
   PixTest::init();
   init();
 }
@@ -89,7 +90,8 @@ PixTestPhOptimization::~PixTestPhOptimization() {}
 void PixTestPhOptimization::doTest() {
 
   TStopwatch t;
-
+  
+  gStyle->SetPalette(1);
   cacheDacs();
   bigBanner(Form("PixTestPhOptimization::doTest() Ntrig = %d", fParNtrig ));
   fDirectory->cd();
@@ -200,7 +202,8 @@ void PixTestPhOptimization::doTest() {
   LOG(logINFO) << "PixTestPhOptimization::doTest() done, duration: " << seconds << " seconds";
   LOG(logINFO) << "PH scale (per ROC):  " << psString;
   LOG(logINFO) << "PH offset (per ROC): " << poString;
-  
+
+  dutCalibrateOff();
  }
 
 void PixTestPhOptimization::BlacklistPixels(std::vector<std::pair<uint8_t, pair<int, int> > > &badPixels, int aliveTrig){
@@ -645,7 +648,21 @@ void PixTestPhOptimization::DrawPhMaps(std::map<int, int> &minVcal, std::vector<
   fApi->setDAC("ctrlreg",4);
   fApi->setDAC("vcal",fVcalMax);
   //pulseheight map at vcal=100
-  result_map = fApi->getPulseheightMap(0,10);
+  //result_map = fApi->getPulseheightMap(0,10);   //unprotected, leads to crash with bad r/o:
+  int  cnt = 0;
+  bool done = false;
+  while (!done) {
+    try {
+      result_map = fApi->getPulseheightMap(0,10);
+      done = true;
+    } catch(pxarException &e) {
+      LOG(logCRITICAL) << "pXar execption: "<< e.what();
+      ++cnt;
+    }
+    done = (cnt>5) || done;
+  }
+
+
   //unpacking data from map and filling one histo per ROC
   for(unsigned int roc_it = 0; roc_it < rocIds.size(); roc_it++){
     name  = Form("PH_mapHiVcal_C%d", rocIds[roc_it]);
@@ -667,7 +684,21 @@ void PixTestPhOptimization::DrawPhMaps(std::map<int, int> &minVcal, std::vector<
   map<int, TH2D* > h2_PhMapsMin;
   map<int, TH1D* > h1_PhMapsMin;
   //phmap
-  result_map = fApi->getPulseheightMap(0,10);
+  //result_map = fApi->getPulseheightMap(0,10);   //unprotected, leads to crash with bad r/o:
+  cnt = 0;
+  done = false;
+  while (!done) {
+    try {
+      result_map = fApi->getPulseheightMap(0,10);
+      done = true;
+    } catch(pxarException &e) {
+      LOG(logCRITICAL) << "pXar execption: "<< e.what();
+      ++cnt;
+    }
+    done = (cnt>5) || done;
+  }
+
+
   //unpacking data from map and filling one histo per ROC
   for(unsigned int roc_it = 0; roc_it < rocIds.size(); roc_it++){
     name  = Form("PH_mapLowVcal_C%d", rocIds[roc_it]);

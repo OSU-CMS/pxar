@@ -23,6 +23,8 @@ typedef unsigned char uint8_t;
 #include <limits>
 #include <cmath>
 
+#include "constants.h"
+
 namespace pxar {
 
   /** Class for storing decoded pixel readout data
@@ -187,17 +189,116 @@ namespace pxar {
   class DLLEXPORT Event {
   public:
     Event() : header(0), trailer(0), pixels() {}
+
+    /** Helper function to clear the event content
+     */
     void Clear() { header = 0; trailer = 0; pixels.clear();}
+
+    /** TBM Header Information: returns the 8 bit event counter of the TBM
+     */
+    uint8_t triggerCount() { return ((header >> 8) & 0xff); };
+
+    /** TBM Emulator Header: returns the phase of the trigger relative to the clock.
+     *  These are the "data" bits stored by the SoftTBM and is equivalent to
+     *  Event::dataValue()
+     */
+    uint8_t triggerPhase() { return dataValue(); };
+
+    /** TBM Header Information: returns the Data ID bits
+     */
+    uint8_t dataID()       { return ((header & 0x00c0) >> 6); };
+
+    /** TBM Header Information: returns the value for the data bits
+     */
+    uint8_t dataValue()    { return (header & 0x003f); };
+
+    /** TBM Trailer Information: reports if no token out has been received
+     *  returns true if the token was not passed successfully
+     */
+    bool hasNoTokenPass() { return ((trailer & 0x8000) != 0); };
+
+    /** TBM Trailer Information: reports if no token out has been received
+     *  returns true if the token out has been rceived correctly
+     */
+    bool hasTokenPass() { return !hasNoTokenPass(); };
+
+    /** TBM Trailer Information: reports if a TBM reset has been sent
+     */
+    bool hasResetTBM()    { return ((trailer & 0x4000) != 0); };
+
+    /** TBM Trailer Information: reports if a ROC reset has been sent
+     */
+    bool hasResetROC()    { return ((trailer & 0x2000) != 0); };
+
+    /** TBM Trailer Information: reports if a sync error occured
+     */
+    bool hasSyncError()   { return ((trailer & 0x1000) != 0); };
+
+    /** TBM Trailer Information: reports if event contains a sync trigger
+     */
+    bool hasSyncTrigger() { return ((trailer & 0x0800) != 0); };
+
+    /** TBM Trailer Information: reports if the trigger count has been reset
+     */
+    bool hasClearTriggerCount() { return ((trailer & 0x0400) != 0); };
+
+    /** TBM Trailer Information: reports if the event had a calibrate signal
+     */
+    bool hasCalTrigger()  { return ((trailer & 0x0200) != 0); };
+
+    /** TBM Trailer Information: reports if the TBM stack is full
+     */
+    bool stackFull()      { return ((trailer & 0x0100) != 0); };
+
+    /** TBM Trailer Information: reports if a auto reset has been sent
+     */
+    bool hasAutoReset() { return ((trailer & 0x0080) != 0); };
+
+    /** TBM Trailer Information: reports if a PKAM counter reset has been sent
+     */
+    bool hasPkamReset() { return ((trailer & 0x0040) != 0); };
+
+    /** TBM Trailer Information: reports the current 6 bit trigger stack count
+     */
+    uint8_t stackCount() { return (trailer & 0x003f); };
+
+    /** TBM Header
+     */
     uint16_t header;
+
+    /** Helper function to print the TBM Header
+     */
+    void printHeader();
+
+    /** TBM Trailer
+     */
     uint16_t trailer;
+
+    /** Helper function to print the TBM Trailer
+     */
+    void printTrailer();
+
+    /** Vector of successfully decoded pxar::pixel objects
+     */
     std::vector<pixel> pixels;
+
   private:
+
+    /** Overloaded sum operator for adding up data from different events
+     */
+    friend Event& operator+=(Event &lhs, const Event &rhs) {
+      // FIXME this currently only transports pixels, no header information:
+      lhs.pixels.insert(lhs.pixels.end(), rhs.pixels.begin(), rhs.pixels.end());
+      return lhs;
+    };
+
     /** Overloaded ostream operator for simple printing of Event data
      */
     friend std::ostream & operator<<(std::ostream &out, Event& evt) {
       out << "====== " << std::hex << static_cast<uint16_t>(evt.header) << std::dec << " ====== ";
       for (std::vector<pixel>::iterator it = evt.pixels.begin(); it != evt.pixels.end(); ++it)
 	out << (*it) << " ";
+      out << "====== " << std::hex << static_cast<uint16_t>(evt.trailer) << std::dec << " ====== ";
       return out;
     }
   };
@@ -235,6 +336,16 @@ namespace pxar {
     */
     unsigned int flags;
 
+    /** Overloaded sum operator for adding up data from different events
+     */
+    friend rawEvent& operator+=(rawEvent &lhs, const rawEvent &rhs) {
+      // Add the raw data:
+      lhs.data.insert(lhs.data.end(), rhs.data.begin(), rhs.data.end());
+      // Also carry over event flags:
+      lhs.flags |= rhs.flags;
+      return lhs;
+    };
+    
     /** Overloaded ostream operator for simple printing of raw data blobs
      */
     friend std::ostream & operator<<(std::ostream &out, rawEvent& record) {
@@ -252,10 +363,13 @@ namespace pxar {
   class DLLEXPORT pixelConfig {
   public:
   pixelConfig() : 
-    _column(0), _row(0), 
+    _column(0), _row(0), _roc_id(0),
       _trim(15), _mask(true), _enable(false) {}
   pixelConfig(uint8_t column, uint8_t row, uint8_t trim, bool mask = true, bool enable = false) : 
-    _column(column), _row(row), _trim(trim),
+    _column(column), _row(row), _roc_id(0), _trim(trim),
+      _mask(mask), _enable(enable) {}
+  pixelConfig(uint8_t roc, uint8_t column, uint8_t row, uint8_t trim, bool mask = true, bool enable = false) : 
+    _column(column), _row(row), _roc_id(roc), _trim(trim),
       _mask(mask), _enable(enable) {}
     uint8_t column() const { return _column; }
     void setColumn(uint8_t column) { _column = column; }
@@ -302,10 +416,18 @@ namespace pxar {
    */
   class DLLEXPORT tbmConfig {
   public:
-  tbmConfig() : dacs(), type(0), enable(true) {}
+    tbmConfig(uint8_t tbmtype);
     std::map< uint8_t,uint8_t > dacs;
     uint8_t type;
+    uint8_t hubid;
+    uint8_t core;
+    std::vector<uint8_t> tokenchains;
     bool enable;
+
+    // Check token pass setting:
+    bool NoTokenPass() { return (dacs[0x00]&0x40); };
+    // Return readable name of the core:
+    std::string corename() { return ((core&0x10) ? "Beta" : "Alpha"); };
   };
 
   /** Class for statistics on event and pixel decoding
@@ -335,17 +457,49 @@ namespace pxar {
       m_errors_tbm_eventid_mismatch(0),
       m_errors_roc_missing(0),
       m_errors_roc_readback(0),
+      m_errors_pixel_incomplete(0),
       m_errors_pixel_address(0),
       m_errors_pixel_pulseheight(0),
       m_errors_pixel_buffer_corrupt(0)
 	{};
     // Print all statistics to stdout:
     void dump();
-    friend statistics& operator+=(statistics &lhs, const statistics &rhs);
+    friend statistics& operator+=(statistics &lhs, const statistics &rhs) {
+      // Informational bits:
+      lhs.m_info_words_read += rhs.m_info_words_read;
+      lhs.m_info_events_empty += rhs.m_info_events_empty;
+      lhs.m_info_events_valid += rhs.m_info_events_valid;
+      lhs.m_info_pixels_valid += rhs.m_info_pixels_valid;
+
+      // Event errors:
+      lhs.m_errors_event_start += rhs.m_errors_event_start;
+      lhs.m_errors_event_stop += rhs.m_errors_event_stop;
+      lhs.m_errors_event_overflow += rhs.m_errors_event_overflow;
+      lhs.m_errors_event_invalid_words += rhs.m_errors_event_invalid_words;
+      lhs.m_errors_event_invalid_xor += rhs.m_errors_event_invalid_xor;
+
+      // TBM errors:
+      lhs.m_errors_tbm_header += rhs.m_errors_tbm_header;
+      lhs.m_errors_tbm_trailer += rhs.m_errors_tbm_trailer;
+      lhs.m_errors_tbm_eventid_mismatch += rhs.m_errors_tbm_eventid_mismatch;
+
+      // ROC errors:
+      lhs.m_errors_roc_missing += rhs.m_errors_roc_missing;
+      lhs.m_errors_roc_readback += rhs.m_errors_roc_readback;
+
+      // Pixel decoding errors:
+      lhs.m_errors_pixel_incomplete += rhs.m_errors_pixel_incomplete;
+      lhs.m_errors_pixel_address += rhs.m_errors_pixel_address;
+      lhs.m_errors_pixel_pulseheight += rhs.m_errors_pixel_pulseheight;
+      lhs.m_errors_pixel_buffer_corrupt += rhs.m_errors_pixel_buffer_corrupt;
+
+      return lhs;
+    };
 
     uint32_t info_words_read() {return m_info_words_read; }
     uint32_t info_events_empty() {return m_info_events_empty; }
     uint32_t info_events_valid() {return m_info_events_valid; }
+    uint32_t info_events_total() {return (m_info_events_valid + m_info_events_empty); }
     uint32_t info_pixels_valid() {return m_info_pixels_valid; }
 
     uint32_t errors() {
