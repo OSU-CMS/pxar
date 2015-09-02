@@ -376,7 +376,7 @@ void PixTestScurves::fitS() {
 void PixTestScurves::adjustVcal() {
 
   vector<int> vcal; 
-  //uint16_t FLAGS = FLAG_FORCE_MASKED;
+  uint16_t FLAG = FLAG_FORCE_MASKED;
 
   vector<uint8_t> rocIds = fApi->_dut->getEnabledRocIDs(); 
   unsigned nrocs = rocIds.size();
@@ -403,7 +403,7 @@ void PixTestScurves::adjustVcal() {
   try{
     
     vector<pair<uint8_t, pair<uint8_t, vector<pixel> > > >  results = 
-      fApi->getEfficiencyVsDACDAC("vthrcomp", 0, 255, "vcal", 0, 255, fParApiFlag, ntrig);
+      fApi->getEfficiencyVsDACDAC("vthrcomp", 0, 255, "vcal", 0, 255, FLAG, ntrig);
     
     int idx(-1);
     for (unsigned int i = 0; i < results.size(); ++i) {

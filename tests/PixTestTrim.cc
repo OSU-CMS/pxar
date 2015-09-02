@@ -163,13 +163,14 @@ void PixTestTrim::trimTest() {
   int NTRIG(20);
   map<int, int> rocVthrComp;
   print("VthrComp thr map (minimal VthrComp)"); 
-  vector<TH1*> thr0 = scurveMaps("vthrcomp", "TrimThr0", NTRIG, 0, 159, -1, -1, 7); 
+  vector<TH1*> thr0 = scurveMaps("vthrcomp", "TrimThr0", NTRIG, 0, 255, -1, -1, 7); 
   PixTest::update(); 
   if (thr0.size()/3 != rocIds.size()) {
     LOG(logERROR) << "scurve map size " << thr0.size() << " does not agree with number of enabled ROCs " << rocIds.size();
     fProblem = true;
     return;
   }
+
   vector<int> minVthrComp = getMinimumVthrComp(thr0, 10, 2.); 
   
   TH2D* h2(0); 
@@ -181,7 +182,7 @@ void PixTestTrim::trimTest() {
 
   // -- determine pixel with largest VCAL threshold
   print("Vcal thr map (pixel with maximum Vcal thr)"); 
-  vector<TH1*> thr1 = scurveMaps("vcal", "TrimThr1", NTRIG, 0, 159, -1, -1, 1); 
+  vector<TH1*> thr1 = scurveMaps("vcal", "TrimThr1", NTRIG, 0, 255, -1, -1, 1); 
   PixTest::update(); 
   if (thr1.size() != rocIds.size()) {
     LOG(logERROR) << "scurve map size " << thr1.size() << " does not agree with number of enabled ROCs " << rocIds.size() << endl;
@@ -205,6 +206,9 @@ void PixTestTrim::trimTest() {
 
     // -- empty bins are ignored (Jamie)
     TH1* d1 = distribution(h2, 255, 1., 256.); 
+
+    fHistList.push_back(d1);
+    fHistOptions.insert(make_pair(d1, "")); 
 
     vcalMean = d1->GetMean(); 
     vcalMin = d1->GetMean() - NSIGMA*d1->GetRMS();

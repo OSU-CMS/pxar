@@ -144,12 +144,8 @@ PixTestDacDacScan::~PixTestDacDacScan() {
 void PixTestDacDacScan::doTest() {
 
   //  uint16_t FLAGS = FLAG_FORCE_SERIAL | FLAG_FORCE_MASKED; // required for manual loop over ROCs
-<<<<<<< HEAD
-  //uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
-=======
   uint16_t FLAGS = FLAG_FORCE_MASKED; // required for manual loop over ROCs
   gStyle->SetPalette(1);
->>>>>>> master
   fDirectory->cd();
   PixTest::update(); 
 
