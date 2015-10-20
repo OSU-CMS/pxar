@@ -1,5 +1,5 @@
-#include <stdlib.h>     /* atof, atoi */
-#include <algorithm>    // std::find
+#include <stdlib.h>     
+#include <algorithm>    
 #include <iostream>
 #include <fstream>
 
@@ -160,7 +160,8 @@ void PixTestTrim::trimTest() {
   setTrimBits(15);  
   
   // -- determine minimal VthrComp 
-  int NTRIG(20);
+  int NTRIG(fParNtrig);
+  if (NTRIG < 5) NTRIG = 5;
   map<int, int> rocVthrComp;
   print("VthrComp thr map (minimal VthrComp)"); 
   vector<TH1*> thr0 = scurveMaps("vthrcomp", "TrimThr0", NTRIG, 0, 255, -1, -1, 7); 
@@ -214,7 +215,7 @@ void PixTestTrim::trimTest() {
     vcalMin = d1->GetMean() - NSIGMA*d1->GetRMS();
     if (vcalMin < 0) vcalMin = 0; 
     vcalMax = d1->GetMean() + NSIGMA*d1->GetRMS();
-    if (vcalMax > 255) vcalMin = 255; 
+    if (vcalMax > 255) vcalMax = 255; 
     delete d1; 
 
     s1 = hname.rfind("_C");
@@ -337,7 +338,7 @@ void PixTestTrim::trimTest() {
 
   // -- set trim bits
   int correction = 4;
-  vector<TH1*> thr2  = scurveMaps("vcal", "TrimThr2", fParNtrig, 0, 199, -1, -1, 1); 
+  vector<TH1*> thr2  = scurveMaps("vcal", "TrimThr2", fParNtrig, 0, 150, -1, -1, 1);
   if (thr2.size() != rocIds.size()) {
     LOG(logERROR) << "scurve map thr2 size " << thr2.size() << " does not agree with number of enabled ROCs " << rocIds.size();
     fProblem = true;
@@ -603,7 +604,7 @@ int PixTestTrim::adjustVtrim() {
 // ----------------------------------------------------------------------
 vector<TH1*> PixTestTrim::trimStep(string name, int correction, vector<TH1*> calOld, int vcalMin, int vcalMax) {
 
-  int NTRIG(20); 
+  int NTRIG(fParNtrig);
 
   if (vcalMin < 0) vcalMin = 0; 
   if (vcalMin > 255) vcalMax = 255; 

@@ -156,6 +156,11 @@ void PixTestPretest::doTest() {
   }
 
   setVana();
+  if (fProblem) {
+    bigBanner("ERROR: turning of some ROCs lead to less I(ana) current drop than expected;  stop"); 
+    return;
+  }
+
   h1 = (*fDisplayedHist); 
   h1->Draw(getHistOption(h1).c_str());
   PixTest::update(); 
@@ -307,7 +312,7 @@ void PixTestPretest::setVana() {
 		 << " Vana " << vana
 		 << " Ia " << ia-i015 << " mA";
 
-    while (TMath::Abs(diff) > eps && iter < 11 && vana > 0 && vana < 255) {
+    while (TMath::Abs(diff) > eps && iter < 11 && vana >= 0 && vana < 255) {
 
       int stp = static_cast<int>(TMath::Abs(slope*diff));
       if (stp == 0) stp = 1;
@@ -355,7 +360,7 @@ void PixTestPretest::setVana() {
   fHistList.push_back(hsum);
 
   TH1D *hcurr = bookTH1D("Iana", "Iana per ROC", nRocs, 0., nRocs);
-  setTitles(hcurr, "ROC", "Vana [DAC]"); 
+  setTitles(hcurr, "ROC", "Iana [mA]"); 
   hcurr->SetStats(0); // no stats
   hcurr->SetMinimum(0);
   hcurr->SetMaximum(30.0);
@@ -387,7 +392,49 @@ void PixTestPretest::setVana() {
   fDisplayedHist = find(fHistList.begin(), fHistList.end(), hsum);
   PixTest::update();
 
+
+  // -- test that current drops when turning off single ROCs
+  cacheDacs();
+  double iAll = fApi->getTBia()*1E3; 
+  sw.Start(kTRUE); 
+  do {
+    sw.Start(kFALSE); 
+    iAll = fApi->getTBia()*1E3;
+  } while (sw.RealTime() < 0.1);
+
+  double iMinus1(0), vanaOld(0); 
+  vector<double> iLoss; 
+  for (int iroc = 0; iroc < nRocs; ++iroc) {
+    vanaOld = fApi->_dut->getDAC(iroc, "vana");
+    fApi->setDAC("vana", 0, iroc);
+
+    iMinus1 = fApi->getTBia()*1E3; // [mA], just to be sure to flush usb
+    sw.Start(kTRUE); // reset
+    do {
+      sw.Start(kFALSE); // continue
+      iMinus1 = fApi->getTBia()*1E3; // [mA]
+    } while (sw.RealTime() < 0.1);
+    iLoss.push_back(iAll-iMinus1); 
+    
+    fApi->setDAC("vana", vanaOld, iroc);
+  }
+
+  string vanaString(""), vthrcompString(""); 
+  for (int iroc = 0; iroc < nRocs; ++iroc){
+    if (iLoss[iroc] < 15) {
+      vanaString += Form("  ->%3.1f<-", iLoss[iroc]); 
+      fProblem = true; 
+    } else {
+      vanaString += Form("  %3.1f", iLoss[iroc]); 
+    }
+  }
+  // -- summary printout
   LOG(logINFO) << "PixTestPretest::setVana() done, Module Ia " << ia16 << " mA = " << ia16/nRocs << " mA/ROC";
+  LOG(logINFO) << "i(loss) [mA/ROC]:   " << vanaString;
+
+
+  restoreDacs();
+
 
   dutCalibrateOff();
 }
